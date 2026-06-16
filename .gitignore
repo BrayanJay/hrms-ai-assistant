@@ -1,0 +1,28 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Scratch files
+scratch/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+
+# Docker volumes
+postgres_data/
+qdrant_data/
+redis_data/
+
+# IDE
+.vscode/
+.idea/
+
