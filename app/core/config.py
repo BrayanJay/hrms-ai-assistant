@@ -1,9 +1,11 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import List
 
 class Settings(BaseSettings):
     #app
     model_config = SettingsConfigDict(env_file=".env")
     app_env: str
+    allowed_origins: str
 
     #frontend
     frontend_url: str
@@ -41,5 +43,9 @@ class Settings(BaseSettings):
     google_client_id: str
     google_client_secret: str
     google_redirect_uri: str
+
+    def get_allowed_origins(self) -> List[str]:
+        return [o.strip() for o in self.allowed_origins.split(",")]
+
 
 settings = Settings()
