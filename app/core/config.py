@@ -7,9 +7,6 @@ class Settings(BaseSettings):
     app_env: str
     allowed_origins: str
 
-    #frontend
-    frontend_url: str
-
     #postgres
     database_url: str
     secret_key: str
