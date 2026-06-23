@@ -49,5 +49,5 @@ def generate_otp() -> str:
 def hash_otp(otp: str) -> str:
     return password_context.hash(otp)
 
-def verify_otp(plain: str, hashed: str) -> bool:
+def verify_hashed_otp(plain: str, hashed: str) -> bool:
     return password_context.verify(plain, hashed)
