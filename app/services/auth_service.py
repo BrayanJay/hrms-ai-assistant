@@ -5,6 +5,7 @@ from app.models.otp import OTP
 from fastapi import HTTPException, status
 from app.core.security import hash_password, generate_otp, hash_otp, verify_password, create_access_token, create_refresh_token, verify_hashed_otp
 from datetime import datetime, timezone
+from app.services.email_service import send_otp_email
 
 async def register(db: AsyncSession, email: str, password: str) -> str:
 
@@ -28,7 +29,7 @@ async def register(db: AsyncSession, email: str, password: str) -> str:
     db.add(new_otp)
     await db.commit()
 
-    #Trigger email service to send the otp
+    await send_otp_email(email=email, otp=create_otp)
 
     return "User created successfully and Send the OTP for verification"
 
@@ -39,18 +40,20 @@ async def login(db: AsyncSession,email: str, password: str) -> str:
     if not existing_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not verify_password(password, existing_user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Worng Username or Password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Worng username or password")
     if not existing_user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Your account is either inactived or suspended. Please contact help desk support team.")
     
     create_otp = generate_otp()
     hashed_otp = hash_otp(create_otp)
 
+    user_email = existing_user.email
+
     new_otp = OTP(user_id=existing_user.id, hashed_otp=hashed_otp)
     db.add(new_otp)
     await db.commit()
 
-    #Trigger OTP Email service
+    await send_otp_email(email=user_email, otp=create_otp)
 
     return "OTP has been sent to your registered email"
 
@@ -73,9 +76,12 @@ async def verify_otp(db: AsyncSession, email: str, otp: str) -> dict:
     latest_otp.is_used = True
     existing_user.is_verified = True
 
+    user_id = str(existing_user.id)
+    user_role = existing_user.role
+
     await db.commit()
 
-    acc_tkn = create_access_token(existing_user.id, existing_user.role)
-    ref_tkn = create_refresh_token(existing_user.id)
+    acc_tkn = create_access_token(user_id, user_role)
+    ref_tkn = create_refresh_token(user_id)
 
-    return {"access_token": acc_tkn, "refresh_token": ref_tkn}
+    return {"access_token": acc_tkn, "refresh_token": ref_tkn, "token_type": "bearer"}

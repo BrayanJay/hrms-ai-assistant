@@ -1,18 +1,17 @@
 from datetime import datetime, timedelta, timezone
-from passlib.context import CryptContext
+import bcrypt
 from jose import jwt, JWTError
 from app.core.config import settings
 from fastapi import HTTPException, status
 from secrets import randbelow
 
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = settings.secret_key
 
 def hash_password(password: str) -> str:
-    return password_context.hash(password)
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return password_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 def create_access_token(user_id: str, role: str) -> str:
     payload = {
@@ -47,7 +46,7 @@ def generate_otp() -> str:
     return str(randbelow(1000000)).zfill(6)
 
 def hash_otp(otp: str) -> str:
-    return password_context.hash(otp)
+    return bcrypt.hashpw(otp.encode(), bcrypt.gensalt()).decode()
 
 def verify_hashed_otp(plain: str, hashed: str) -> bool:
-    return password_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode(), hashed.encode())

@@ -6,6 +6,8 @@ services:
     volumes:
       - ./app:/code/app
     env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://astrynox:password@postgres:5432/astrynox-ai
     depends_on:
       - postgres
       - qdrant
