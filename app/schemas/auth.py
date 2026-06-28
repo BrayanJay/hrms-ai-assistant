@@ -22,3 +22,6 @@ class VerifyOTPResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+
+class GoogleAuthRequest(BaseModel):
+      code: str
