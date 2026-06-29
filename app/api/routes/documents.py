@@ -1,10 +1,11 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
-from app.schemas.document import UploadResponse
+from app.schemas.document import UploadResponse, DocumentListItem
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.api.dependencies import require_admin
 from pathlib import Path
 from app.models.document import Document
+from sqlalchemy import select
 
 router = APIRouter()
 
@@ -29,6 +30,11 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
 
     await db.commit()
 
-    return UploadResponse(document_id=doc_id, filename=doc_filename, status=doc_status, created_at=doc_created_at)
-    
+    return UploadResponse(id=doc_id, filename=doc_filename, status=doc_status, created_at=doc_created_at)
+
+@router.get("/", response_model=list[DocumentListItem])
+async def list_documents(db: AsyncSession = Depends(get_db), admin_id: str = Depends(require_admin)):
+    result = await db.execute(select(Document).order_by(Document.created_at.desc()))
+    documents = result.scalars().all()
+    return documents
     
