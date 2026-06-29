@@ -1,16 +1,13 @@
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi import Security, HTTPException, status
+from fastapi import HTTPException, status, Request
 from app.core.security import decode_token
 
-security = HTTPBearer()
-
-def require_admin(credentials: HTTPAuthorizationCredentials = Security(security)):
-    token = credentials.credentials
+def require_admin(request: Request):
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     decoded_token = decode_token(token=token)
     
-    if not decoded_token["role"] == "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This action required admin access"
-        )
+    if decoded_token["role"] != "admin":
+          raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    
     return decoded_token["sub"]

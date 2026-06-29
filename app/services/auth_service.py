@@ -33,7 +33,7 @@ async def register(db: AsyncSession, email: str, password: str) -> str:
 
     return "User created successfully and Send the OTP for verification"
 
-async def login(db: AsyncSession,email: str, password: str) -> str:
+async def login(db: AsyncSession,email: str, password: str) -> dict:
     result = await db.execute(select(User).where(User.email == email))
     existing_user = result.scalar_one_or_none()
 
@@ -44,18 +44,11 @@ async def login(db: AsyncSession,email: str, password: str) -> str:
     if not existing_user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Your account is either inactived or suspended. Please contact help desk support team.")
     
-    create_otp = generate_otp()
-    hashed_otp = hash_otp(create_otp)
+    user_id = str(existing_user.id)
+    user_role = existing_user.role
+    
 
-    user_email = existing_user.email
-
-    new_otp = OTP(user_id=existing_user.id, hashed_otp=hashed_otp)
-    db.add(new_otp)
-    await db.commit()
-
-    await send_otp_email(email=user_email, otp=create_otp)
-
-    return "OTP has been sent to your registered email"
+    return { "access_token": create_access_token(user_id,user_role), "refresh_token": create_refresh_token(user_id), "token_type": "bearer" }
 
 async def verify_otp(db: AsyncSession, email: str, otp: str) -> dict:
     user_result = await db.execute(select(User).where(User.email == email))

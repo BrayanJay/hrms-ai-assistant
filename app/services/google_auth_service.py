@@ -38,7 +38,7 @@ async def google_login(db: AsyncSession, code: str) -> dict:
     jwks = jwks_response.json()
 
     try:
-        payload = jwt.decode(id_token, jwks, algorithms=["RS256"], audience=settings.google_client_id)
+        payload = jwt.decode(id_token, jwks, algorithms=["RS256"], audience=settings.google_client_id, access_token=token_data.get("access_token"))
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
     
