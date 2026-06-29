@@ -10,7 +10,7 @@ from sqlalchemy import select
 router = APIRouter()
 
 @router.post("/upload", response_model=UploadResponse)
-async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depends(get_db), admin_id: str = Depends(require_admin)):
+async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_admin)):
     file_type = Path(file.filename).suffix.lower().lstrip(".")
     
     if file_type not in ["pdf", "docx", 'pptx', 'xlsx']:
@@ -19,7 +19,7 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
             detail="Invalid file type"
         )
     
-    new_doc = Document(filename=file.filename, original_filename=file.filename, status="processing", file_type=file_type, source_type="document", uploaded_by=admin_id)
+    new_doc = Document(filename=file.filename, original_filename=file.filename, status="processing", file_type=file_type, source_type="document", uploaded_by=current_user["sub"])
     db.add(new_doc)
     await db.flush()
 
@@ -33,7 +33,7 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
     return UploadResponse(id=doc_id, filename=doc_filename, status=doc_status, created_at=doc_created_at)
 
 @router.get("/", response_model=list[DocumentListItem])
-async def list_documents(db: AsyncSession = Depends(get_db), admin_id: str = Depends(require_admin)):
+async def list_documents(db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_admin)):
     result = await db.execute(select(Document).order_by(Document.created_at.desc()))
     documents = result.scalars().all()
     return documents
