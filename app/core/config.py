@@ -9,6 +9,9 @@ class Settings(BaseSettings):
 
     #postgres
     database_url: str
+    db_user: str
+    db_password: str
+    db_name: str
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
@@ -18,6 +21,10 @@ class Settings(BaseSettings):
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
     qdrant_collection: str = "astrynox_chunks"
+
+    #chunking
+    threshold: int
+    child_threshold: int
 
     #redis cache
     redis_host: str = "localhost"
@@ -40,6 +47,9 @@ class Settings(BaseSettings):
     google_client_id: str
     google_client_secret: str
     google_redirect_uri: str
+
+    #frontend url
+    next_public_api_url: str
 
     def get_allowed_origins(self) -> List[str]:
         return [o.strip() for o in self.allowed_origins.split(",")]
