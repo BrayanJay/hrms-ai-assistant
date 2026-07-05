@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     threshold: int
     child_threshold: int
 
+    #image optimisation
+    max_image_size: int
+
     #redis cache
     redis_host: str = "localhost"
     redis_port: int = 6379
