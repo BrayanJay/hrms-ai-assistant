@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     #openai api
     openai_api_key: str
-    openai_model: str = "gpt-4o"
+    openai_model: str
 
     #embedding model
     embedding_model: str = "BAAI/bge-large-en-v1.5"
