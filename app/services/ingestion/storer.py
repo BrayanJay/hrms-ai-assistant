@@ -1,0 +1,35 @@
+from app.core.config import settings
+from qdrant_client import AsyncQdrantClient
+from qdrant_client.models import VectorParams, Distance, SparseVectorParams, PointStruct, SparseVector
+from collections import Counter
+
+client = AsyncQdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
+
+async def ensure_collection() -> None:
+    if not await client.collection_exists(settings.qdrant_collection):
+        await client.create_collection(collection_name=settings.qdrant_collection, vectors_config={"dense": VectorParams(size=settings.embedding_dimension, distance=Distance.COSINE)}, sparse_vectors_config={"sparse": SparseVectorParams()})
+
+async def store_chunk(chunk: dict, dense_vector: list[float], tokens: list[str]) -> None:
+        
+    counts = Counter(tokens)
+    indices = [hash(word) % (2**31) for word in counts.keys()]
+    values = [float(count) for count in counts.values()]
+    sparse_vector = SparseVector(indices=indices, values=values)
+
+    point = PointStruct(
+         id=abs(hash(chunk["chunk_id"])) % (2**63),
+         vector={
+              "dense": dense_vector,
+              "sparse": sparse_vector
+         },
+         payload={
+             "chunk_id": chunk["chunk_id"],
+             "parent_chunk_id": chunk["parent_chunk_id"],
+             "type": chunk["type"],
+             "content": chunk["content"],
+             "page": chunk.get("page"),
+             "image_bytes": chunk.get("image_bytes"),
+         }
+    )
+
+    await client.upsert(collection_name=settings.qdrant_collection, points=[point])

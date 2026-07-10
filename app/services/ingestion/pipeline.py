@@ -1,6 +1,10 @@
 from app.services.ingestion.parser import parse_document
 from app.services.ingestion.chunker import chunk_document
 from app.models.document import Document
+from app.services.ingestion.embedder import embed_document, tokenize
+from app.services.ingestion.storer import store_chunk, ensure_collection
+from app.services.ingestion.image_optimizer import optimise_image
+from app.services.ingestion.vlm import caption_image
 
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,8 +12,10 @@ from sqlalchemy import select
 from datetime import datetime, timezone
 
 async def run_pipeline(doc_id: str, file_path: str, db: AsyncSession) -> None:
-
+    
     try:
+        await ensure_collection()
+        
         result = await parse_document(file_path)
         chunks = chunk_document(doc_id, result)
 
@@ -22,15 +28,25 @@ async def run_pipeline(doc_id: str, file_path: str, db: AsyncSession) -> None:
             else:
                 image_chunks.append(chunk)
 
-        async def tracker_1():
-            # embed and store text/table chunks
-            pass
+        async def text_and_table_tracker():
+            for chunk in text_n_table_chunks:
+                dense = await embed_document(chunk["content"])
+                tokens = tokenize(chunk["content"])
+                await store_chunk(chunk, dense, tokens)
 
-        async def tracker_2():
-            # optimize images → VLM caption → embed → store
-            pass
+        async def image_tracker():
+            for chunk in image_chunks:
+                if chunk["image_bytes"]:
+                    b64 = await optimise_image(chunk["image_bytes"])
+                    caption = await caption_image(b64)
+                    chunk["content"] = caption["caption"]
+                    chunk["image_bytes"] = b64
+                dense = await embed_document(chunk["content"])
+                tokens = tokenize(chunk["content"])
+                await store_chunk(chunk, dense, tokens)
 
-        await asyncio.gather(tracker_1(), tracker_2())
+
+        await asyncio.gather(text_and_table_tracker(), image_tracker())
 
         result = await db.execute(select(Document).where(Document.id == doc_id))
         doc = result.scalar_one_or_none()
