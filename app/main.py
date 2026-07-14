@@ -21,5 +21,3 @@ app.include_router(scraping.router, prefix="/api/scraping", tags=["scraping"])
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-

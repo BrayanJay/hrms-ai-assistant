@@ -5,6 +5,7 @@ from app.services.ingestion.embedder import embed_document, tokenize
 from app.services.ingestion.storer import store_chunk, ensure_collection
 from app.services.ingestion.image_optimizer import optimise_image
 from app.services.ingestion.vlm import caption_image
+from app.services.retrieval.cache import invalidate_answers
 
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,6 +51,7 @@ async def run_pipeline(doc_id: str, file_path: str, db: AsyncSession) -> None:
 
         result = await db.execute(select(Document).where(Document.id == doc_id))
         doc = result.scalar_one_or_none()
+        await invalidate_answers()
         doc.status = "completed"
         doc.completed_at = datetime.now(timezone.utc)
         await db.commit()

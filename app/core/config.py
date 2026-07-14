@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     threshold: int
     child_threshold: int
 
+    #retrieval
+    top_k_chunks: int
+    retrieval_threshold: float
+
     #image optimisation
     max_image_size: int
 
