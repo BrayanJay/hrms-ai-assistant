@@ -18,7 +18,13 @@ async def assemble(chunks: list[dict]) -> list[dict]:
     parent_map = {p.payload["chunk_id"]: p.payload for p in parent_chunks}
 
     context = []
-    for citation, chunk in enumerate(chunks, start=1):
+    seen = set()
+    citation = 1
+    for chunk in chunks:
+        if chunk["parent_chunk_id"] in seen:
+            continue
+        seen.add(chunk["parent_chunk_id"])
+
         source = parent_map.get(chunk["parent_chunk_id"], chunk)
         context.append({
             "citation": citation,
@@ -26,6 +32,7 @@ async def assemble(chunks: list[dict]) -> list[dict]:
             "content": source["content"],
             "image_bytes": source.get("image_bytes")
         })
+        citation += 1
     
     return context
 

@@ -1,5 +1,5 @@
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import SparseVector, NamedSparseVector
+from qdrant_client.models import SparseVector
 from collections import Counter
 import asyncio
 
@@ -10,24 +10,26 @@ from app.services.retrieval.cache import get_embedding, set_embedding
 client = AsyncQdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
 
 async def dense_search(query_vector: list[float], top_k: int) -> list:
-    
-    return await client.search(
+    response = await client.query_points(
         collection_name=settings.qdrant_collection,
-        query_vector=("dense", query_vector),
+        query=query_vector,
+        using="dense",
         limit=top_k
     )
+    return response.points
 
-async def sparse_search(query_tokens: list[str], top_k: int):
+async def sparse_search(query_tokens: list[str], top_k: int) -> list:
     counts = Counter(query_tokens)
-
-    return await client.search(
+    response = await client.query_points(
         collection_name=settings.qdrant_collection,
-        query_vector=NamedSparseVector(
-            name="sparse",
-            vector=SparseVector(indices=[hash(word) % (2**31) for word in counts.keys()], values=[float(count) for count in counts.values()])
+        query=SparseVector(
+            indices=[hash(word) % (2**31) for word in counts.keys()],
+            values=[float(count) for count in counts.values()]
         ),
+        using="sparse",
         limit=top_k
     )
+    return response.points
 
 async def hybrid_search(query: str, top_k: int):
     query_vector = await get_embedding(query)
