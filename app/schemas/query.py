@@ -5,4 +5,4 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str
-    citations: list
+    citations: list[dict]
