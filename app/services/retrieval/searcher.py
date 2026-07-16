@@ -4,8 +4,6 @@ from collections import Counter
 import asyncio
 
 from app.core.config import settings
-from app.services.ingestion.embedder import embed_query, tokenize
-from app.services.retrieval.cache import get_embedding, set_embedding
 
 client = AsyncQdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
 
@@ -31,14 +29,7 @@ async def sparse_search(query_tokens: list[str], top_k: int) -> list:
     )
     return response.points
 
-async def hybrid_search(query: str, top_k: int):
-    query_vector = await get_embedding(query)
-
-    if not query_vector:
-        query_vector = await embed_query(query)
-        await set_embedding(query, query_vector)
-
-    query_tokens = tokenize(query)
+async def hybrid_search(query_vector: list[float], query_tokens: list[str], top_k: int):
 
     dense_results, sparse_results = await asyncio.gather(
         dense_search(query_vector, top_k),
