@@ -30,7 +30,8 @@ async def assemble(chunks: list[dict]) -> list[dict]:
             "citation": citation,
             "type": source["type"],
             "content": source["content"],
-            "image_bytes": source.get("image_bytes")
+            "image_bytes": source.get("image_bytes"),
+            "doc_id": source.get("doc_id")
         })
         citation += 1
     

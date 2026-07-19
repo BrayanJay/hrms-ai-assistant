@@ -25,6 +25,7 @@ async def store_chunk(chunk: dict, dense_vector: list[float], tokens: list[str])
          payload={
              "chunk_id": chunk["chunk_id"],
              "parent_chunk_id": chunk["parent_chunk_id"],
+             "doc_id": chunk["doc_id"],
              "type": chunk["type"],
              "content": chunk["content"],
              "page": chunk.get("page"),

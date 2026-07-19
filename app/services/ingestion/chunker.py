@@ -21,6 +21,7 @@ def chunk_document(doc_id: str, parsed: dict) -> list[dict]:
     for table in table_content:
         table_chunk = {
             "chunk_id": f"{doc_id}_p{table["page"]}_g{len(groups)}",
+            "doc_id": doc_id,
             "type": "table",
             "parent_chunk_id": None,
             "content": table["markdown"],
@@ -31,6 +32,7 @@ def chunk_document(doc_id: str, parsed: dict) -> list[dict]:
     for image in image_content:
         image_chunk = {
             "chunk_id": f"{doc_id}_p{image["page"]}_g{len(groups)}",
+            "doc_id": doc_id,
             "type": "image",
             "parent_chunk_id": None,
             "content": "",
@@ -43,6 +45,7 @@ def chunk_document(doc_id: str, parsed: dict) -> list[dict]:
 def _build_text_chunks(doc_id: str, group: list, groups: list) -> None:
     parent_chunk = {
         "chunk_id": f"{doc_id}_p{group[-1]['page']}_g{len(groups)}",
+        "doc_id": doc_id,
         "type": "text",
         "parent_chunk_id": None,
         "content": " ".join([b["text"] for b in group]),
@@ -55,6 +58,7 @@ def _build_text_chunks(doc_id: str, group: list, groups: list) -> None:
         groups.append({
             "chunk_id": f"{parent_chunk['chunk_id']}_c{i}",
             "parent_chunk_id": parent_chunk["chunk_id"],
+            "doc_id": doc_id,
             "type": "text",
             "content": " ".join(words[i:i+settings.child_threshold]),
             "image_bytes": None
