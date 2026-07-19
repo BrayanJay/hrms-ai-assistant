@@ -44,6 +44,18 @@ async def set_retrieval(query: str, chunks: list):
     key = L3_PREFIX + query
     await redis.set(key, json.dumps(chunks), ex=1800)
 
+async def get_history(user_id: str, session_id: str) -> list[dict] | None:
+    key = f"session:{user_id}:{session_id}"
+    result = await redis.get(key)
+    if result:
+        return json.loads(result)
+    
+    return None
+
+async def set_history(user_id: str, session_id: str, history: list[dict]):
+    key = f"session:{user_id}:{session_id}"
+    await redis.set(key, json.dumps(history), ex=86400)
+
 async def invalidate_answers():
     keys = await redis.keys(L1_PREFIX + "*")
     if keys:

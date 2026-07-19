@@ -19,11 +19,13 @@ async def assemble(chunks: list[dict]) -> list[dict]:
 
     context = []
     seen = set()
+
     citation = 1
     for chunk in chunks:
-        if chunk["parent_chunk_id"] in seen:
+        seen_key = chunk["parent_chunk_id"] or chunk["chunk_id"]
+        if seen_key in seen:
             continue
-        seen.add(chunk["parent_chunk_id"])
+        seen.add(seen_key)
 
         source = parent_map.get(chunk["parent_chunk_id"], chunk)
         context.append({

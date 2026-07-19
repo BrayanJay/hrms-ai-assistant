@@ -17,7 +17,7 @@ async def parse_document(file_path: str) -> dict:
     images = []
 
     for item in result.document.texts:
-        text_blocks.append({"text": item.text, "page": item.prov[0].page_no, "y_pos": item.prov[0].bbox.t})
+        text_blocks.append({"text": item.text, "label":item.label, "page": item.prov[0].page_no, "y_pos": item.prov[0].bbox.t})
     
     for item in result.document.tables:
         tables.append({"markdown": item.export_to_markdown(doc=result.document), "page": item.prov[0].page_no, "y_pos": item.prov[0].bbox.t})

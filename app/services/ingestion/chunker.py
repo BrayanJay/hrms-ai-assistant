@@ -1,21 +1,20 @@
 from app.core.config import settings
 
-threshold = settings.threshold
-
 def chunk_document(doc_id: str, parsed: dict) -> list[dict]:
     text_content = parsed["text_contents"]
     table_content = parsed["table_contents"]
     image_content = parsed["image_contents"]
     current_group = []
     groups = []
-    for idx, content in enumerate(text_content):
+    
+    for content in text_content:
+        if content["label"] == "section_header" and current_group:
+            _build_text_chunks(doc_id, current_group, groups)
+            current_group = []
         current_group.append(content)
-        if idx < len(text_content) - 1:
-            if text_content[idx]["y_pos"] - text_content[idx+1]["y_pos"] > threshold:
-                _build_text_chunks(doc_id, current_group, groups)
-                current_group = []
             
-    _build_text_chunks(doc_id, current_group, groups)
+    if current_group:
+        _build_text_chunks(doc_id, current_group, groups)
         
 
     for table in table_content:
@@ -51,9 +50,14 @@ def _build_text_chunks(doc_id: str, group: list, groups: list) -> None:
         "content": " ".join([b["text"] for b in group]),
         "image_bytes": None
     }
-    groups.append(parent_chunk)
 
     words = parent_chunk["content"].split()
+
+    if len(words) < 5:
+        return
+    
+    groups.append(parent_chunk)
+    
     for i in range(0, len(words), settings.child_threshold):
         groups.append({
             "chunk_id": f"{parent_chunk['chunk_id']}_c{i}",

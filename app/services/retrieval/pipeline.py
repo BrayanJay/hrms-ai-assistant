@@ -8,8 +8,8 @@ from app.services.ingestion.embedder import embed_query, tokenize
 from app.services.retrieval.cache import get_embedding, set_embedding
 from app.services.retrieval.cache import set_retrieval, get_retrieval
 
-async def retrieve(query: str) -> list[dict] | None:
-    query = await rewrite(query)
+async def retrieve(query: str, history: list[dict]) -> list[dict] | None:
+    query = await rewrite(query, history)
 
     #L2 cache check
     query_vector = await get_embedding(query)

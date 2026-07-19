@@ -17,3 +17,5 @@ def require_user(request: Request):
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     decoded_token = decode_token(token=token)
+
+    return decoded_token
