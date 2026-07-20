@@ -19,7 +19,7 @@ def chunk_document(doc_id: str, parsed: dict) -> list[dict]:
 
     for table in table_content:
         table_chunk = {
-            "chunk_id": f"{doc_id}_p{table["page"]}_g{len(groups)}",
+            "chunk_id": f"{doc_id}_p{table['page']}_g{len(groups)}",
             "doc_id": doc_id,
             "type": "table",
             "parent_chunk_id": None,
