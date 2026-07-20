@@ -9,6 +9,9 @@ class Settings(BaseSettings):
 
     #postgres
     database_url: str
+    db_user: str
+    db_password: str
+    db_name: str
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
@@ -19,6 +22,17 @@ class Settings(BaseSettings):
     qdrant_port: int = 6333
     qdrant_collection: str = "astrynox_chunks"
 
+    #chunking
+    threshold: int
+    child_threshold: int
+
+    #retrieval
+    top_k_chunks: int
+    retrieval_threshold: float
+
+    #image optimisation
+    max_image_size: int
+
     #redis cache
     redis_host: str = "localhost"
     redis_port: int = 6379
@@ -26,7 +40,7 @@ class Settings(BaseSettings):
 
     #openai api
     openai_api_key: str
-    openai_model: str = "gpt-4o"
+    openai_model: str
 
     #embedding model
     embedding_model: str = "BAAI/bge-large-en-v1.5"
@@ -40,6 +54,9 @@ class Settings(BaseSettings):
     google_client_id: str
     google_client_secret: str
     google_redirect_uri: str
+
+    #frontend url
+    next_public_api_url: str
 
     def get_allowed_origins(self) -> List[str]:
         return [o.strip() for o in self.allowed_origins.split(",")]

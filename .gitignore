@@ -26,3 +26,7 @@ redis_data/
 .vscode/
 .idea/
 
+#Raw files
+assets/
+uploads/
+

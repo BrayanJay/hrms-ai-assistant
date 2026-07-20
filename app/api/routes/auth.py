@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Response
-from app.schemas.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, VerifyOTPRequest, VerifyOTPResponse, GoogleAuthRequest
+from app.schemas.auth import RegisterRequest, RegisterResponse, LoginRequest, VerifyOTPRequest, GoogleAuthRequest
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services import auth_service, google_auth_service
+from app.api.dependencies import require_admin
 
 router = APIRouter()
 
@@ -36,3 +37,14 @@ async def google_auth(req: GoogleAuthRequest, response: Response, db: AsyncSessi
     response.set_cookie(key="refresh_token", value=result["refresh_token"], httponly=True, samesite="lax", secure=False)
 
     return {"message": "Login successful"}
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie(key="access_token", httponly=True, samesite="lax")
+    response.delete_cookie(key="refresh_token", httponly=True, samesite="lax")
+
+    return {"message": "User logout successful"}
+
+@router.get("/me")
+async def me( current_user: dict = Depends(require_admin)):
+    return current_user
