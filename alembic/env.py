@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.models.base import Base
-from app.models import user, otp, document, chat_session, query_event
+from app.models import user, otp, document, chat_session, query_event, agent_log
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

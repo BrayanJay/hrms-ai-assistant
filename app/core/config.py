@@ -38,6 +38,15 @@ class Settings(BaseSettings):
     redis_port: int = 6379
     redis_db: int = 0
 
+    # LLM
+    llm_base_url: str
+    llm_api_key: str
+    llm_model: str
+
+    # HR System API
+    hr_api_base_url: str
+    hr_api_token: str
+
     #openai api
     openai_api_key: str
     openai_model: str
