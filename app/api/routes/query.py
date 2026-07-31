@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 import time
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.limiter import limiter
 from app.schemas.query import QueryRequest, QueryResponse
 from app.models.query_event import QueryEvent
 from app.api.dependencies import require_user
@@ -14,7 +15,8 @@ from app.core.database import get_db
 router = APIRouter()
 
 @router.post("/", response_model=QueryResponse)
-async def query(req: QueryRequest, current_user: dict = Depends(require_user), db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def query(request: Request, req: QueryRequest, current_user: dict = Depends(require_user), db: AsyncSession = Depends(get_db)):
     start_time = time.monotonic()
     cache_hit = False
     answer = None

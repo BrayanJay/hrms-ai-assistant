@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { FileText, LogOut, Database, BarChart2, Settings } from "lucide-react"
+import { FileText, LogOut, Database, BarChart2 } from "lucide-react"
 import api from "@/lib/axios"
 import { useEffect, useState } from "react"
 import axios from "axios"
@@ -64,10 +64,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link href="/accuracy" className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
                         <BarChart2 size={16} />
                         Accuracy
-                    </Link>
-                    <Link href="/configurations" className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
-                        <Settings size={16} />
-                        Configurations
                     </Link>
                 </nav>
 
