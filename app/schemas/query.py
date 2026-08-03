@@ -13,3 +13,6 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
     citations: list[dict]
+    requires_confirmation: bool = False
+    confirmation_payload: dict | None = None
+    pending_action_id: str | None = None
