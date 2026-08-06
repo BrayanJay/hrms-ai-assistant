@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, Response, Request
+from fastapi import APIRouter, Depends, Response, Request, HTTPException, status
 from app.schemas.auth import RegisterRequest, RegisterResponse, LoginRequest, VerifyOTPRequest, GoogleAuthRequest
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services import auth_service, google_auth_service
 from app.api.dependencies import require_admin
 from app.core.limiter import limiter
+from app.models.user import User
+from sqlalchemy import select
+from app.core.security import create_access_token, decode_token
 
 router = APIRouter()
 
@@ -22,6 +25,25 @@ async def login(request: Request, req:LoginRequest, response: Response, db: Asyn
     response.set_cookie(key="refresh_token", value=result["refresh_token"], httponly=True, samesite="lax", secure=False)
 
     return {"message": "Login successfull"}
+
+@router.post("/refresh")
+async def refresh(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="No refresh token")
+
+    payload = decode_token(token)                          # raises 401 if expired/invalid
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Invalid token type")
+
+    # fetch user from DB to get their role
+    result = await db.execute(select(User).where(User.id == payload["sub"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    response.set_cookie(key="access_token", value=create_access_token(str(user.id), user.role), httponly=True, samesite="lax", secure=False)
+    return {"message": "Token refreshed"}
 
 @router.post("/verify-otp")
 @limiter.limit("5/minute")

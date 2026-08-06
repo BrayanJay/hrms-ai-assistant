@@ -45,7 +45,6 @@ class Settings(BaseSettings):
 
     # HR System API
     hr_api_base_url: str
-    hr_api_token: str
 
     #openai api
     openai_api_key: str

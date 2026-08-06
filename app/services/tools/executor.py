@@ -10,17 +10,22 @@ class ToolCallError(Exception):
         self.message = message
         super().__init__(message)
 
-async def execute_tool(tool_name: str,  params: dict) -> dict:
+async def execute_tool(tool_name: str,  params: dict, user_token: str) -> dict:
     if not HR_API_BASE_URL:
         mock_data = {
             "get_leave_balance": {
-                "employee_id": params.get("employee_id"),
-                "balances": {
-                    "annual": 12,
-                    "casual": 5,
-                    "medical": 3
-                }
-            },
+                "success": True,
+                "data": [
+                    {"leave_category_code": "ANNUAL", "leave_category_name": "Annual Leave", "summary_period": "YEARLY", "summary_year": 2026,
+                "eligible": 14, "used": 0, "pending": 0, "available": 14},
+                    {"leave_category_code": "CASUAL", "leave_category_name": "Casual Leave", "summary_period": "YEARLY", "summary_year": 2026,
+                "eligible": 7, "used": 6, "pending": 0, "available": 1},
+                    {"leave_category_code": "MEDICAL", "leave_category_name": "Medical Leave", "summary_period": "YEARLY", "summary_year": 2026,
+                "eligible": 7, "used": 5.5, "pending": 0, "available": 1.5},
+                    {"leave_category_code": "SHORT", "leave_category_name": "Short Leave", "summary_period": "MONTHLY", "summary_year": 2026,
+                "eligible": 2, "used": 0, "pending": 0, "available": 2},
+                    ]
+                },
             "get_kpi_achievement": {
                 "employee_id": params.get("employee_id"),
                 "score": 87.5,
@@ -79,7 +84,7 @@ async def execute_tool(tool_name: str,  params: dict) -> dict:
     tool = TOOL_REGISTRY[tool_name]
     url = HR_API_BASE_URL + tool["endpoint"].format_map(params)
 
-    headers = {"Authorization": f"Bearer {settings.hr_api_token}"}
+    headers = {"Authorization": f"Bearer {user_token}"}
     async with httpx.AsyncClient() as client:
         if tool["method"] == "GET":
             response = await client.get(url, headers=headers, params=params)
@@ -88,4 +93,7 @@ async def execute_tool(tool_name: str,  params: dict) -> dict:
 
     if response.status_code >= 400:
         raise ToolCallError(response.status_code, response.text)
-    return response.json()
+    result = response.json()
+    if not result.get("success", True):
+        raise ToolCallError(200, result.get("message", "Tool returned failure"))
+    return result

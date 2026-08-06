@@ -25,7 +25,7 @@ export default function LoginPage() {
 
         try {
             await api.post("/auth/login", { email, password })
-            router.push(`/auth/chat`)
+            router.push(`/documents`)
         } catch (err) {
             if (axios.isAxiosError(err)) {
                 setError(err.response?.data?.detail ?? "Registration failed. Please try again.")

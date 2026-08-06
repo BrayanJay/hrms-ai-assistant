@@ -11,6 +11,8 @@ async def ensure_collection() -> None:
 
 async def delete_doc_chunks(doc_id: str) -> None:
     from qdrant_client.models import Filter, FieldCondition, MatchValue
+    if not await client.collection_exists(settings.qdrant_collection):
+        return
     await client.delete(
         collection_name=settings.qdrant_collection,
         points_selector=Filter(

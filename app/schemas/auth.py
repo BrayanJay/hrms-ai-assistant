@@ -8,7 +8,7 @@ class RegisterResponse(BaseModel):
     message: str
 
 class LoginRequest(BaseModel):
-    email: str
+    username: str
     password: str
 
 class LoginResponse(BaseModel):

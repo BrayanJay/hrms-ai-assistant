@@ -50,16 +50,16 @@ ROUTER_SYSTEM_PROMPT = f"""
 
   Return ONLY a valid JSON object. No explanation. No markdown. No code fences.
 
-  {
+  {{
     "intent": "RAG" | "TOOL" | "BOTH" | "CHAT",
     "language": "en" | "si" | "ta",
     "rag_query": "<rewritten search query for the knowledge base, or null>",
     "tool_name": "<exact tool name from the list above, or null>",
-    "tool_params": {"<param>": "<value>"} | null,
+    "tool_params": {{"<param>": "<value>"}} | null,
     "is_sequential": true | false,
     "is_write": false,
     "chat_response_hint": "<empathy or tone hint for the response generator, or null>"
-  }
+  }}
 
   Rules:
   - rag_query must be set for RAG and BOTH intents, null for TOOL and CHAT

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import api from "@/lib/axios"
 import axios from "axios"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 type Citation = {
     citation: number
@@ -128,7 +130,23 @@ export default function ChatPage() {
                                     ? "bg-blue-600 text-white rounded-br-sm"
                                     : "bg-zinc-800 text-zinc-100 rounded-bl-sm"
                             }`}>
-                                {msg.content}
+                                {msg.role === "assistant" ? (
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                            ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
+                                            ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
+                                            li: ({ children }) => <li className="text-zinc-100">{children}</li>,
+                                            strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+                                            code: ({ children }) => <code className="bg-zinc-700 px-1 rounded text-xs">{children}</code>,
+                                        }}
+                                    >
+                                        {msg.content}
+                                    </ReactMarkdown>
+                                ) : (
+                                    msg.content
+                                )}
                             </div>
 
                             {msg.role === "assistant" && msg.citations && msg.citations.length > 0 && (

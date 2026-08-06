@@ -8,15 +8,10 @@ TOOL_REGISTRY: dict[str, dict] = {
         ),
         "parameters": {
             "type": "object",
-            "properties": {
-                "employee_id": {
-                    "type": "string",
-                    "description": "The unique identifier of the employee whose leave balance is requested.",
-                },
-            },
-            "required": ["employee_id"],
+            "properties": {},
+            "required": [],
         },
-        "endpoint": "/leave/{employee_id}",
+        "endpoint": "/hr/leave/balance-summary",
         "method": "GET",
         "is_write": False,
     },
