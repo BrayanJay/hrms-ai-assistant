@@ -28,7 +28,7 @@ router = APIRouter()
 async def query(request: Request, req: QueryRequest, current_user: dict = Depends(require_user), db: AsyncSession = Depends(get_db)):
     start_time = time.monotonic()
     user_id = current_user["sub"]
-    user_token = request.cookies.get("access_token")
+    user_token = request.headers.get("Authorization", "").split(" ")[1]
 
     history = await get_history(user_id=user_id, session_id=req.session_id) or []
     decision = await classify_intent(query=req.query, user_id=user_id, history=history)
@@ -128,6 +128,7 @@ async def query(request: Request, req: QueryRequest, current_user: dict = Depend
     ))
     db.add(AgentLog(
         user_id=user_id,
+        username=current_user["username"],
         session_id=req.session_id,
         query=req.query,
         intent=decision.intent,
@@ -156,7 +157,7 @@ async def confirm(
     db: AsyncSession = Depends(get_db),
 ):
     user_id = current_user["sub"]
-    user_token = request.cookies.get("access_token")
+    user_token = request.headers.get("Authorization", "").split(" ")[1]
 
     payload = await get_pending(session_id=req.session_id, action_id=req.action_id)
     if not payload:
@@ -191,6 +192,7 @@ async def confirm(
 
     db.add(AgentLog(
         user_id=user_id,
+        username=current_user["username"],
         session_id=req.session_id,
         query=payload["query"],
         intent="TOOL",

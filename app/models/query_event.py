@@ -9,7 +9,7 @@ from app.models.base import Base
 class QueryEvent(Base):
     __tablename__ = "query_events"
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("chat_session.id"), nullable=False)
     query: Mapped[str] = mapped_column(String, nullable=False)
     cache_hit: Mapped[bool] = mapped_column(Boolean, nullable=False)

@@ -10,7 +10,8 @@ from app.models.base import Base
 class AgentLog(Base):
     __tablename__ = "agent_log"
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    username: Mapped[str] = mapped_column(String, nullable=False)
     session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("chat_session.id"), nullable=False)
     query: Mapped[str] = mapped_column(String, nullable=False)
     intent: Mapped[str] = mapped_column(String, nullable=False)
