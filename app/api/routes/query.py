@@ -48,6 +48,7 @@ async def query(request: Request, req: QueryRequest, current_user: dict = Depend
             context=[],
             history=history,
             chat_hint=decision.chat_response_hint,
+            language=decision.language
         )
 
     elif decision.intent == "RAG":
@@ -59,7 +60,7 @@ async def query(request: Request, req: QueryRequest, current_user: dict = Depend
             context = await retrieve(decision.rag_query or req.query, history)
             retrieved_chunks = len(context) if context else 0
             if context:
-                answer = await generate(query=req.query, context=context, history=history)
+                answer = await generate(query=req.query, context=context, history=history, language=decision.language)
                 await set_answer(req.query, answer)
                 citations = build_citations(answer, context)
 
@@ -86,6 +87,7 @@ async def query(request: Request, req: QueryRequest, current_user: dict = Depend
                     context=[],
                     history=history,
                     tool_context=tool_result,
+                    language=decision.language
                 )
             except ToolCallError:
                 answer = "I couldn't retrieve that information right now. Please try again later."
@@ -105,6 +107,7 @@ async def query(request: Request, req: QueryRequest, current_user: dict = Depend
             context=context,
             history=history,
             tool_context=tool_result,
+            language=decision.language
         )
         if context:
             citations = build_citations(answer, context)

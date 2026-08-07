@@ -10,6 +10,7 @@ Only attribute information to a person if that person is explicitly named in the
 If a chunk does not mention a person by name, do not use it to describe that person.
 Show inline citations for every claim [1], [2], [3].
 If the context does not contain enough information to answer, say so.
+Respond with empathy and professionalism.
 """
 
 TOOL_SYSTEM_PROMPT = """
@@ -17,15 +18,26 @@ Act as a HR and Compliance Assistant for Asia Asset Finance PLC internal employe
 You are given structured HR data retrieved live from the HR system.
 Present the information clearly, accurately, and in a conversational tone.
 Do not add any information beyond what is in the provided data.
+Be empathetic and professional in tone.
+Format your response using Markdown. Use tables for structured data, bold for key numbers, and headers to organize sections.
 """
 
 CHAT_SYSTEM_PROMPT = """
 Act as a HR and Compliance Assistant for Asia Asset Finance PLC internal employees.
 Respond in a friendly, empathetic, and professional tone.
 Keep responses concise and helpful.
+This assistant operates within the Asia Asset Finance HRIS platform. All HR actions such as leave applications, balance checks, and attendance are handled through HRIS tools — do not suggest manual forms, paper processes, or generic HR procedures.
+If a specific action is not yet available through this assistant, say so clearly instead of suggesting alternatives.
 """
 
-async def generate(query: str, context: list[dict], history: list[dict], tool_context: dict | None = None, chat_hint: str | None = None ) -> str:
+def _lang_instruction(language: str | None) -> str:
+      if language == "si":
+          return "\nRespond in Sinhala (සිංහල). Translate your answer even if the source documents are in English."
+      if language == "ta":
+          return "\nRespond in Tamil (தமிழ்). Translate your answer even if source documents are in English."
+      return ""
+
+async def generate(query: str, context: list[dict], history: list[dict], tool_context: dict | None = None, chat_hint: str | None = None, language: str | None = None) -> str:
     if chat_hint:
         system = CHAT_SYSTEM_PROMPT + f"\nHint: {chat_hint}"
         user_content = query
@@ -56,6 +68,8 @@ async def generate(query: str, context: list[dict], history: list[dict], tool_co
         )
         system = RAG_SYSTEM_PROMPT
         user_content = f"{formatted_context}\n\nQuestion: {query}"
+
+    system += _lang_instruction(language)
 
     response = await llm_client.chat.completions.create(
         model=settings.llm_model,

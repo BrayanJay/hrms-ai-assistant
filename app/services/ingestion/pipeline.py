@@ -6,11 +6,14 @@ from app.services.ingestion.storer import store_chunk, ensure_collection
 from app.services.ingestion.image_optimizer import optimise_image
 from app.services.ingestion.vlm import caption_image
 from app.services.retrieval.cache import invalidate_answers
+from app.core.logging import logging
 
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 async def run_pipeline(doc_id: str, file_path: str, db: AsyncSession) -> None:
     

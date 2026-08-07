@@ -3,40 +3,28 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { FileText, LogOut, Database, BarChart2, MessageSquare } from "lucide-react"
-import api from "@/lib/axios"
+import { logout } from "@/lib/auth"
 import { useEffect, useState } from "react"
-import axios from "axios"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(true)
     const [isAuthorized, setIsAuthorized] = useState(false)
 
-    const handleLogout = async () => {
-        try {
-            await api.post("/auth/logout")
-        } finally {
-            router.push("/auth/login")
-        }
+    const handleLogout = () => {
+        logout()
+        router.push("/auth/login")
     }
 
     useEffect(() => {
-        const check = async () => {
-            try {
-                await api.get("/auth/me")
-                setIsLoading(false)
-                setIsAuthorized(true)
-
-            } catch (err) {
-                if (axios.isAxiosError(err)) {
-                    router.push(`/auth/login?error=${err.response?.data?.detail ?? "Authentication Failed"}`)
-                } else {
-                    router.push("/auth/login?error=An unexpected error occurred")
-                }
-            }
+        const token = localStorage.getItem("access_token")
+        if (!token) {
+            router.push("/auth/login")
+            return
         }
-        check()
-    }, [])
+        setIsLoading(false)
+        setIsAuthorized(true)
+    }, [router])
 
     if (isLoading) return null
     if (!isAuthorized) return null

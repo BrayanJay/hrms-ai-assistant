@@ -16,10 +16,20 @@ type Citation = {
     doc_id?: string
 }
 
+type ConfirmationPayload = {
+    tool_name: string
+    tool_params: Record<string, unknown>
+    query: string
+}
+
 type Message = {
     role: "user" | "assistant"
     content: string
     citations?: Citation[]
+    requiresConfirmation?: boolean
+    pendingActionId?: string
+    confirmationPayload?: ConfirmationPayload
+    confirmationDone?: boolean
 }
 
 export default function ChatPage() {
@@ -49,24 +59,36 @@ export default function ChatPage() {
         }
     }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!query.trim() || !sessionId) return
+    const submitQuery = async (text: string) => {
+        if (!text.trim() || !sessionId || loading) return
 
-        const userMessage: Message = { role: "user", content: query }
+        const userMessage: Message = { role: "user", content: text }
         setMessages(prev => [...prev, userMessage])
         setQuery("")
         setLoading(true)
         setError("")
 
         try {
-            const res = await api.post("/query/", { query: userMessage.content, session_id: sessionId })
-            const assistantMessage: Message = {
-                role: "assistant",
-                content: res.data.answer,
-                citations: res.data.citations
+            const res = await api.post("/query/", { query: text, session_id: sessionId })
+
+            if (res.data.requires_confirmation) {
+                const confirmMessage: Message = {
+                    role: "assistant",
+                    content: res.data.answer,
+                    requiresConfirmation: true,
+                    pendingActionId: res.data.pending_action_id,
+                    confirmationPayload: res.data.confirmation_payload,
+                    confirmationDone: false,
+                }
+                setMessages(prev => [...prev, confirmMessage])
+            } else {
+                const assistantMessage: Message = {
+                    role: "assistant",
+                    content: res.data.answer,
+                    citations: res.data.citations,
+                }
+                setMessages(prev => [...prev, assistantMessage])
             }
-            setMessages(prev => [...prev, assistantMessage])
         } catch (err) {
             if (axios.isAxiosError(err)) {
                 setError(err.response?.data?.detail ?? "Something went wrong.")
@@ -78,10 +100,39 @@ export default function ChatPage() {
         }
     }
 
+    const handleConfirm = async (actionId: string, confirmed: boolean) => {
+        setMessages(prev =>
+            prev.map(m => m.pendingActionId === actionId ? { ...m, confirmationDone: true } : m)
+        )
+        setLoading(true)
+        setError("")
+
+        try {
+            const res = await api.post("/query/confirm", {
+                session_id: sessionId,
+                action_id: actionId,
+                confirmed,
+            })
+            setMessages(prev => [...prev, {
+                role: "assistant",
+                content: res.data.answer,
+                citations: res.data.citations,
+            }])
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                setError(err.response?.data?.detail ?? "Confirmation failed.")
+            } else {
+                setError("An unexpected error occurred.")
+            }
+        } finally {
+            setLoading(false)
+        }
+    }
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault()
-            handleSubmit(e as unknown as React.FormEvent)
+            submitQuery(query)
         }
     }
 
@@ -124,7 +175,7 @@ export default function ChatPage() {
 
                 {messages.map((msg, index) => (
                     <div key={index} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[75%] space-y-2`}>
+                        <div className="max-w-[75%] space-y-2">
                             <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                                 msg.role === "user"
                                     ? "bg-blue-600 text-white rounded-br-sm"
@@ -140,6 +191,14 @@ export default function ChatPage() {
                                             li: ({ children }) => <li className="text-zinc-100">{children}</li>,
                                             strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
                                             code: ({ children }) => <code className="bg-zinc-700 px-1 rounded text-xs">{children}</code>,
+                                            table: ({ children }) => (
+                                                <div className="overflow-x-auto my-2">
+                                                    <table className="text-xs border-collapse w-full">{children}</table>
+                                                </div>
+                                            ),
+                                            thead: ({ children }) => <thead className="border-b border-zinc-600">{children}</thead>,
+                                            th: ({ children }) => <th className="px-3 py-2 text-left text-zinc-300 font-semibold whitespace-nowrap">{children}</th>,
+                                            td: ({ children }) => <td className="px-3 py-2 text-zinc-200 border-t border-zinc-700">{children}</td>,
                                         }}
                                     >
                                         {msg.content}
@@ -149,6 +208,64 @@ export default function ChatPage() {
                                 )}
                             </div>
 
+                            {/* Maker-checker confirmation card */}
+                            {msg.requiresConfirmation && (
+                                <div className={`border rounded-xl p-4 space-y-3 transition-opacity ${
+                                    msg.confirmationDone
+                                        ? "border-zinc-700 bg-zinc-900/50 opacity-50"
+                                        : "border-amber-700/60 bg-amber-950/20"
+                                }`}>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                                        <p className="text-xs text-amber-400 font-medium uppercase tracking-wide">
+                                            Action Requires Confirmation
+                                        </p>
+                                    </div>
+
+                                    {msg.confirmationPayload && (
+                                        <div className="text-xs text-zinc-400 space-y-1">
+                                            <p>
+                                                <span className="text-zinc-500">Action: </span>
+                                                <span className="text-zinc-200 font-medium">{msg.confirmationPayload.tool_name}</span>
+                                            </p>
+                                            {Object.keys(msg.confirmationPayload.tool_params).length > 0 && (
+                                                <p>
+                                                    <span className="text-zinc-500">Parameters: </span>
+                                                    <span className="text-zinc-300">
+                                                        {JSON.stringify(msg.confirmationPayload.tool_params)}
+                                                    </span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {!msg.confirmationDone ? (
+                                        <div className="flex gap-2 pt-1">
+                                            <Button
+                                                onClick={() => handleConfirm(msg.pendingActionId!, true)}
+                                                disabled={loading}
+                                                size="sm"
+                                                className="bg-blue-600 hover:bg-blue-500 text-white text-xs h-7 px-4"
+                                            >
+                                                Confirm
+                                            </Button>
+                                            <Button
+                                                onClick={() => handleConfirm(msg.pendingActionId!, false)}
+                                                disabled={loading}
+                                                size="sm"
+                                                variant="ghost"
+                                                className="text-red-400 hover:text-red-300 hover:bg-zinc-800 text-xs h-7 px-4"
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-zinc-500 italic">Response recorded.</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Citations */}
                             {msg.role === "assistant" && msg.citations && msg.citations.length > 0 && (
                                 <div className="pl-1">
                                     <button
@@ -192,7 +309,7 @@ export default function ChatPage() {
             {/* Input */}
             <div className="border-t border-zinc-800 px-4 py-4">
                 {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
-                <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+                <div className="flex gap-3 items-end">
                     <Textarea
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
@@ -202,13 +319,13 @@ export default function ChatPage() {
                         className="flex-1 resize-none bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-600 focus-visible:ring-blue-500 rounded-xl"
                     />
                     <Button
-                        type="submit"
+                        onClick={() => submitQuery(query)}
                         disabled={loading || !query.trim()}
                         className="bg-blue-600 hover:bg-blue-500 text-white px-5 rounded-xl"
                     >
                         Send
                     </Button>
-                </form>
+                </div>
                 <p className="text-xs text-zinc-600 mt-2 text-center">Press Enter to send · Shift+Enter for new line</p>
             </div>
         </div>

@@ -1,5 +1,4 @@
-import api from "./axios"
-
-export const logout = async () => {
-    await api.post("/api/auth/logout")
+export const logout = () => {
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("refresh_token")
 }
