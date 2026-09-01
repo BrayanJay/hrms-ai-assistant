@@ -4,11 +4,13 @@ from app.core.config import settings
 from app.core.llm_client import llm_client
 
 RAG_SYSTEM_PROMPT = """
+You MUST include an inline citation marker [1], [2], etc. after EVERY factual statement.
+Example: "Employees are entitled to 14 days of annual leave [1]."
+Never write a sentence containing a fact without a citation number at the end.
+
 Act as a HR and Compliance Assistant for Asia Asset Finance PLC internal employees.
 Answer only based on the provided context. Do not hallucinate.
 Only attribute information to a person if that person is explicitly named in the context chunk.
-If a chunk does not mention a person by name, do not use it to describe that person.
-Show inline citations for every claim [1], [2], [3].
 If the context does not contain enough information to answer, say so.
 Respond with empathy and professionalism.
 """
@@ -29,13 +31,6 @@ Keep responses concise and helpful.
 This assistant operates within the Asia Asset Finance HRIS platform. All HR actions such as leave applications, balance checks, and attendance are handled through HRIS tools — do not suggest manual forms, paper processes, or generic HR procedures.
 If a specific action is not yet available through this assistant, say so clearly instead of suggesting alternatives.
 """
-
-def _lang_instruction(language: str | None) -> str:
-      if language == "si":
-          return "\nRespond in Sinhala (සිංහල). Translate your answer even if the source documents are in English."
-      if language == "ta":
-          return "\nRespond in Tamil (தமிழ்). Translate your answer even if source documents are in English."
-      return ""
 
 async def generate(query: str, context: list[dict], history: list[dict], tool_context: dict | None = None, chat_hint: str | None = None, language: str | None = None) -> str:
     if chat_hint:
@@ -67,9 +62,7 @@ async def generate(query: str, context: list[dict], history: list[dict], tool_co
             for c in context if c["type"] != "image"
         )
         system = RAG_SYSTEM_PROMPT
-        user_content = f"{formatted_context}\n\nQuestion: {query}"
-
-    system += _lang_instruction(language)
+        user_content = f"{formatted_context}\n\nQuestion: {query}\n\nRemember: cite every factual claim with [N] matching the source number above."
 
     response = await llm_client.chat.completions.create(
         model=settings.llm_model,
@@ -78,6 +71,11 @@ async def generate(query: str, context: list[dict], history: list[dict], tool_co
             *history,
             {"role": "user", "content": user_content},
         ],
+        max_tokens=512,
+        extra_body={
+            "chat_template_kwargs": {"enable_thinking": False},
+            "repetition_penalty": 1.15,
+        }
     )
 
     return response.choices[0].message.content

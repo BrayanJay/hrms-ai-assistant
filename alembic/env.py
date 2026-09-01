@@ -1,3 +1,4 @@
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -6,7 +7,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.models.base import Base
-from app.models import user, otp, document, chat_session, query_event, agent_log
+from app.models import document, chat_session, query_event, agent_log
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -22,6 +23,11 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
+
+
+def get_alembic_database_url() -> str:
+    database_url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    return database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -41,7 +47,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = get_alembic_database_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -60,8 +66,11 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    alembic_config = config.get_section(config.config_ini_section, {})
+    alembic_config["sqlalchemy.url"] = get_alembic_database_url()
+
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        alembic_config,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

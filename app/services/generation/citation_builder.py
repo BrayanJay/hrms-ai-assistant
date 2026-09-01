@@ -16,13 +16,19 @@ def build_citations(answer: str, context: list[dict]) -> list[dict]:
             result.append({
                 "citation": c["citation"],
                 "type": c["type"],
-                "image_bytes": c["image_bytes"]
+                "image_bytes": c["image_bytes"],
+                "doc_id": c.get("doc_id"),
+                "doc_name": c.get("doc_name"),
+                "page": c.get("page")
             })
         else:
             result.append({
                 "citation": c["citation"],
                 "type": c["type"],
-                "content": c["content"]
+                "content": c["content"],
+                "doc_id": c.get("doc_id"),
+                "doc_name": c.get("doc_name"),
+                "page": c.get("page")
             })
     
     return result

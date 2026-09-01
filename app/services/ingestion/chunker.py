@@ -1,6 +1,6 @@
 from app.core.config import settings
 
-def chunk_document(doc_id: str, parsed: dict) -> list[dict]:
+def chunk_document(doc_id: str, doc_name: str, parsed: dict) -> list[dict]:
     text_content = parsed["text_contents"]
     table_content = parsed["table_contents"]
     image_content = parsed["image_contents"]
@@ -9,18 +9,20 @@ def chunk_document(doc_id: str, parsed: dict) -> list[dict]:
     
     for content in text_content:
         if content["label"] == "section_header" and current_group:
-            _build_text_chunks(doc_id, current_group, groups)
+            _build_text_chunks(doc_id, doc_name, current_group, groups)
             current_group = []
         current_group.append(content)
             
     if current_group:
-        _build_text_chunks(doc_id, current_group, groups)
+        _build_text_chunks(doc_id, doc_name, current_group, groups)
         
 
     for table in table_content:
         table_chunk = {
             "chunk_id": f"{doc_id}_p{table['page']}_g{len(groups)}",
             "doc_id": doc_id,
+            "doc_name": doc_name,
+            "page": table["page"],
             "type": "table",
             "parent_chunk_id": None,
             "content": table["markdown"],
@@ -32,6 +34,8 @@ def chunk_document(doc_id: str, parsed: dict) -> list[dict]:
         image_chunk = {
             "chunk_id": f"{doc_id}_p{image["page"]}_g{len(groups)}",
             "doc_id": doc_id,
+            "doc_name": doc_name,
+            "page": image["page"],
             "type": "image",
             "parent_chunk_id": None,
             "content": "",
@@ -41,10 +45,12 @@ def chunk_document(doc_id: str, parsed: dict) -> list[dict]:
 
     return groups
 
-def _build_text_chunks(doc_id: str, group: list, groups: list) -> None:
+def _build_text_chunks(doc_id: str, doc_name: str, group: list, groups: list) -> None:
     parent_chunk = {
         "chunk_id": f"{doc_id}_p{group[-1]['page']}_g{len(groups)}",
         "doc_id": doc_id,
+        "doc_name": doc_name,
+        "page": group[-1]["page"],
         "type": "text",
         "parent_chunk_id": None,
         "content": " ".join([b["text"] for b in group]),
@@ -63,6 +69,8 @@ def _build_text_chunks(doc_id: str, group: list, groups: list) -> None:
             "chunk_id": f"{parent_chunk['chunk_id']}_c{i}",
             "parent_chunk_id": parent_chunk["chunk_id"],
             "doc_id": doc_id,
+            "doc_name": doc_name,
+            "page": parent_chunk["page"],
             "type": "text",
             "content": " ".join(words[i:i+settings.child_threshold]),
             "image_bytes": None

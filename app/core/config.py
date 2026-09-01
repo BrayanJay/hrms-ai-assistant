@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
@@ -20,7 +21,7 @@ class Settings(BaseSettings):
     #qdrant vector db
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
-    qdrant_collection: str = "astrynox_chunks"
+    qdrant_collection: str = "hris_chatbot_chunks"
 
     #chunking
     threshold: int
@@ -40,31 +41,38 @@ class Settings(BaseSettings):
 
     # LLM
     llm_base_url: str
-    llm_api_key: str
-    llm_model: str
+    llm_api_key: str = Field(
+        validation_alias=AliasChoices("LLM_API_KEY", "OPENAI_API_KEY")
+    )
+    llm_model: str = Field(
+        validation_alias=AliasChoices("LLM_MODEL", "OPENAI_MODEL")
+    )
 
     # HR System API
     hr_api_base_url: str
 
-    #openai api
-    openai_api_key: str
-    openai_model: str
+    # History compaction
+    history_compact_threshold: int = 8000
+    history_keep_recent: int = 6
+
+    # Google Translate
+    google_translate_api_key: str
+    translation_model_name: str
 
     #embedding model
     embedding_model: str = "BAAI/bge-large-en-v1.5"
     embedding_dimension: int = 1024
 
-    #resend mail service
-    resend_api_key: str
-    resend_from_email: str
-
-    #google OAuth service
-    google_client_id: str
-    google_client_secret: str
-    google_redirect_uri: str
-
     #frontend url
     next_public_api_url: str
+
+    @property
+    def openai_api_key(self) -> str:
+        return self.llm_api_key
+
+    @property
+    def openai_model(self) -> str:
+        return self.llm_model
 
     def get_allowed_origins(self) -> List[str]:
         return [o.strip() for o in self.allowed_origins.split(",")]

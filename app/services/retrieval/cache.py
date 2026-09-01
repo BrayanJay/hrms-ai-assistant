@@ -1,6 +1,9 @@
 from redis.asyncio import Redis
 from app.core.config import settings
+from app.core.logging import get_logger
 import json
+
+logger = get_logger(__name__)
 
 redis = Redis(host=settings.redis_host, port=settings.redis_port, db=settings.redis_db, decode_responses=True)
 
@@ -8,48 +11,53 @@ L1_PREFIX = "l1:answer:"
 L2_PREFIX = "l2:embedding:"
 L3_PREFIX = "l3:retrieval:"
 
-async def get_answer(query: str) -> str | None:
+async def get_answer(query: str) -> dict | None:
     key = L1_PREFIX + query
-
     result = await redis.get(key)
+    if result:
+        logger.debug("L1 cache hit", extra={"query": query[:100]})
+        return json.loads(result)
+    logger.debug("L1 cache miss", extra={"query": query[:100]})
+    return None
 
-    return result
-
-async def set_answer(query: str, answer: str):
+async def set_answer(query: str, answer: str, citations: list):
     key = L1_PREFIX + query
-    await redis.set(key, answer, ex=3600)
+    await redis.set(key, json.dumps({"answer": answer, "citations": citations}), ex=3600)
+    logger.debug("L1 cache set", extra={"query": query[:100]})
 
 async def get_embedding(query: str) -> list[float] | None:
     key = L2_PREFIX + query
     result = await redis.get(key)
-
     if result:
+        logger.debug("L2 cache hit", extra={"query": query[:100]})
         return json.loads(result)
-    else:
-        return None
-    
+    logger.debug("L2 cache miss", extra={"query": query[:100]})
+    return None
+
 async def set_embedding(query: str, vector: list[float]):
     key = L2_PREFIX + query
     await redis.set(key, json.dumps(vector), ex=3600*24*7)
+    logger.debug("L2 cache set", extra={"query": query[:100]})
 
 async def get_retrieval(query: str) -> list | None:
     key = L3_PREFIX + query
     result = await redis.get(key)
     if result:
+        logger.debug("L3 cache hit", extra={"query": query[:100]})
         return json.loads(result)
-    
+    logger.debug("L3 cache miss", extra={"query": query[:100]})
     return None
 
 async def set_retrieval(query: str, chunks: list):
     key = L3_PREFIX + query
     await redis.set(key, json.dumps(chunks), ex=1800)
+    logger.debug("L3 cache set", extra={"query": query[:100], "chunks": len(chunks)})
 
 async def get_history(user_id: str, session_id: str) -> list[dict] | None:
     key = f"session:{user_id}:{session_id}"
     result = await redis.get(key)
     if result:
         return json.loads(result)
-    
     return None
 
 async def set_history(user_id: str, session_id: str, history: list[dict]):
@@ -60,3 +68,4 @@ async def invalidate_answers():
     keys = await redis.keys(L1_PREFIX + "*")
     if keys:
         await redis.delete(*keys)
+        logger.info("L1 cache invalidated", extra={"keys_deleted": len(keys)})

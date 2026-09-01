@@ -1,5 +1,8 @@
 from app.core.config import settings
+from app.core.logging import get_logger
 from qdrant_client import AsyncQdrantClient
+
+logger = get_logger(__name__)
 
 client = AsyncQdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
 
@@ -11,8 +14,8 @@ async def assemble(chunks: list[dict]) -> list[dict]:
             parent_chunk_ids.add(chunk["parent_chunk_id"])
 
     parent_chunks = await client.retrieve(
-      collection_name=settings.qdrant_collection,
-      ids=[abs(hash(pid)) % (2**63) for pid in parent_chunk_ids]
+        collection_name=settings.qdrant_collection,
+        ids=[abs(hash(pid)) % (2**63) for pid in parent_chunk_ids]
     )
 
     parent_map = {p.payload["chunk_id"]: p.payload for p in parent_chunks}
@@ -33,9 +36,12 @@ async def assemble(chunks: list[dict]) -> list[dict]:
             "type": source["type"],
             "content": source["content"],
             "image_bytes": source.get("image_bytes"),
-            "doc_id": source.get("doc_id")
+            "doc_id": source.get("doc_id"),
+            "doc_name": source.get("doc_name"),
+            "page": source.get("page")
         })
         citation += 1
-    
+
+    logger.debug("assembly complete", extra={"citations": len(context), "parent_chunks_fetched": len(parent_chunks)})
     return context
 

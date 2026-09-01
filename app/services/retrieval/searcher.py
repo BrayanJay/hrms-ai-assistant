@@ -4,6 +4,9 @@ from collections import Counter
 import asyncio
 
 from app.core.config import settings
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 client = AsyncQdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
 
@@ -35,5 +38,18 @@ async def hybrid_search(query_vector: list[float], query_tokens: list[str], top_
         dense_search(query_vector, top_k),
         sparse_search(query_tokens, top_k)
     )
-    
+
+    logger.debug("hybrid search complete", extra={
+        "dense_hits": len(dense_results),
+        "sparse_hits": len(sparse_results),
+        "dense": [
+            {"chunk_id": r.payload.get("chunk_id"), "score": round(r.score, 4), "preview": r.payload.get("content", "")[:80]}
+            for r in dense_results
+        ],
+        "sparse": [
+            {"chunk_id": r.payload.get("chunk_id"), "score": round(r.score, 4), "preview": r.payload.get("content", "")[:80]}
+            for r in sparse_results
+        ],
+    })
+
     return (dense_results, sparse_results)

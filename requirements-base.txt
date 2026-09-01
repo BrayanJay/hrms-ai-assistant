@@ -2,6 +2,7 @@
 sentence-transformers>=3.3.0
 torch>=2.6.0
 transformers>=4.47.0
+sentencepiece>=0.2.0
 
 # ── Document Parsing ───────────────────────────────────────────
 docling>=2.14.0

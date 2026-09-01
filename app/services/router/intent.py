@@ -46,6 +46,14 @@ ROUTER_SYSTEM_PROMPT = f"""
   - si: Sinhala
   - ta: Tamil
 
+  ## CRITICAL RULE
+
+  Classify the CURRENT user message ONLY based on what it is asking for.
+  Do NOT let the conversation history influence your intent choice.
+  A TOOL query must always be classified as TOOL even if all previous messages were CHAT.
+  A RAG query must always be classified as RAG even after casual conversation.
+  The history is provided only to resolve pronouns or references — not to guess intent from tone.
+
   ## OUTPUT FORMAT
 
   Return ONLY a valid JSON object. No explanation. No markdown. No code fences.
@@ -73,14 +81,14 @@ ROUTER_SYSTEM_PROMPT = f"""
 async def classify_intent(query: str, user_id: str, history: list[dict]) -> RouterDecision:
 
     messages = [{"role": "system", "content": ROUTER_SYSTEM_PROMPT}]
-    messages.extend(history)
     messages.append({"role": "user", "content": query})
 
     response = await llm_client.chat.completions.create(
-        model=settings.llm_model,
-        messages=messages,
-        response_format={"type": "json_object"},
-    )
+      model=settings.llm_model,
+      messages=messages,
+      response_format={"type": "json_object"},
+      extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+  )
 
     try:
         data = json.loads(response.choices[0].message.content)

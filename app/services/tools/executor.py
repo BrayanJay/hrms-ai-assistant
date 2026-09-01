@@ -1,6 +1,9 @@
 import httpx
 from app.core.config import settings
 from app.services.tools.registry import TOOL_REGISTRY
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 HR_API_BASE_URL = settings.hr_api_base_url
 
@@ -12,6 +15,7 @@ class ToolCallError(Exception):
 
 async def execute_tool(tool_name: str,  params: dict, user_token: str) -> dict:
     if not HR_API_BASE_URL:
+        logger.debug("mock mode — HR_API_BASE_URL not set", extra={"tool": tool_name, "params": params})
         mock_data = {
             "get_leave_balance": {
                 "success": True,
@@ -84,6 +88,8 @@ async def execute_tool(tool_name: str,  params: dict, user_token: str) -> dict:
     tool = TOOL_REGISTRY[tool_name]
     url = HR_API_BASE_URL + tool["endpoint"].format_map(params)
 
+    logger.info("tool call started", extra={"tool": tool_name, "url": url, "method": tool["method"]})
+
     headers = {"Authorization": f"Bearer {user_token}"}
     async with httpx.AsyncClient() as client:
         if tool["method"] == "GET":
@@ -91,9 +97,18 @@ async def execute_tool(tool_name: str,  params: dict, user_token: str) -> dict:
         else:
             response = await client.post(url, headers=headers, json=params)
 
+    logger.info("tool call complete", extra={
+        "tool": tool_name,
+        "url": url,
+        "status_code": response.status_code,
+        "response_preview": response.text[:300],
+    })
+
     if response.status_code >= 400:
+        logger.warning("tool call failed", extra={"tool": tool_name, "status_code": response.status_code, "body": response.text[:300]})
         raise ToolCallError(response.status_code, response.text)
     result = response.json()
     if not result.get("success", True):
+        logger.warning("tool returned failure", extra={"tool": tool_name, "message": result.get("message")})
         raise ToolCallError(200, result.get("message", "Tool returned failure"))
     return result
