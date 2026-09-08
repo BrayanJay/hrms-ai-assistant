@@ -17,6 +17,7 @@ class Document(Base):
     total_chunks: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     completed_chunks: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    doc_category: Mapped[str] = mapped_column(String, nullable=False, default="policy")
     uploaded_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

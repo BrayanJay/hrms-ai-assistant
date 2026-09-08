@@ -7,6 +7,11 @@ logger = get_logger(__name__)
 
 HR_API_BASE_URL = settings.hr_api_base_url
 
+_hr_client = httpx.AsyncClient(
+    timeout=10.0,
+    limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+)
+
 class ToolCallError(Exception):
     def __init__(self, status_code: int, message: str):
         self.status_code = status_code
@@ -91,11 +96,10 @@ async def execute_tool(tool_name: str,  params: dict, user_token: str) -> dict:
     logger.info("tool call started", extra={"tool": tool_name, "url": url, "method": tool["method"]})
 
     headers = {"Authorization": f"Bearer {user_token}"}
-    async with httpx.AsyncClient() as client:
-        if tool["method"] == "GET":
-            response = await client.get(url, headers=headers, params=params)
-        else:
-            response = await client.post(url, headers=headers, json=params)
+    if tool["method"] == "GET":
+        response = await _hr_client.get(url, headers=headers, params=params)
+    else:
+        response = await _hr_client.post(url, headers=headers, json=params)
 
     logger.info("tool call complete", extra={
         "tool": tool_name,

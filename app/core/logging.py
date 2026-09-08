@@ -1,6 +1,7 @@
 import logging
 import json
 import sys
+import traceback
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
@@ -20,6 +21,8 @@ class JSONFormatter(logging.Formatter):
             "name": record.name,
             "message": record.getMessage(),
         }
+        if record.exc_info:
+            log["traceback"] = traceback.format_exception(*record.exc_info)
         for key, value in record.__dict__.items():
             if key not in STANDARD_ATTRS:
                 log[key] = value

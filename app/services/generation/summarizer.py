@@ -26,7 +26,7 @@ async def _summarize(messages: list[dict]) -> str:
             {"role": "user", "content": f"Summarize this conversation:\n\n{transcript}"},
         ],
         max_tokens=256,
-        extra_body={"enable_thinking": False, "repetition_penalty": 1.15},
+        extra_body={"chat_template_kwargs": {"enable_thinking": False}, "repetition_penalty": 1.15},
     )
     return response.choices[0].message.content
 

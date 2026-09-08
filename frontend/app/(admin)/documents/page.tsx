@@ -11,8 +11,15 @@ interface Document {
     filename: string
     file_type: string
     status: string
+    doc_category: string
     created_at: string
 }
+
+const CATEGORIES = [
+    { value: "policy", label: "Policy" },
+    { value: "company-information", label: "Company Information" },
+    { value: "navigation", label: "Navigation" },
+]
 
 const statusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -27,11 +34,30 @@ const statusBadge = (status: string) => {
     )
 }
 
+const categoryBadge = (category: string) => {
+    const styles: Record<string, string> = {
+        "policy": "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+        "company-information": "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+        "navigation": "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
+    }
+    const labels: Record<string, string> = {
+        "policy": "Policy",
+        "company-information": "Company Info",
+        "navigation": "Navigation",
+    }
+    return (
+        <span className={`px-2 py-1 rounded-md text-xs font-medium ${styles[category] ?? styles.policy}`}>
+            {labels[category] ?? category}
+        </span>
+    )
+}
+
 export default function DocumentsPage() {
     const [documents, setDocuments] = useState<Document[]>([])
     const [uploading, setUploading] = useState(false)
     const [deletingId, setDeletingId] = useState<string | null>(null)
     const [error, setError] = useState("")
+    const [category, setCategory] = useState("policy")
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const fetchDocuments = async () => {
@@ -56,6 +82,7 @@ export default function DocumentsPage() {
 
         const formData = new FormData()
         formData.append("file", file)
+        formData.append("category", category)
 
         try {
             await api.post("/documents/upload", formData, {
@@ -95,18 +122,29 @@ export default function DocumentsPage() {
                     <h2 className="text-xl font-semibold text-white">Documents</h2>
                     <p className="text-sm text-zinc-400 mt-1">Manage your knowledge base documents</p>
                 </div>
-                <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-2"
-                >
-                    <Upload size={16} />
-                    {uploading ? "Uploading..." : "Upload Document"}
-                </Button>
+                <div className="flex items-center gap-3">
+                    <select
+                        value={category}
+                        onChange={e => setCategory(e.target.value)}
+                        className="bg-zinc-900 border border-zinc-700 text-zinc-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                        {CATEGORIES.map(c => (
+                            <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
+                    </select>
+                    <Button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-2"
+                    >
+                        <Upload size={16} />
+                        {uploading ? "Uploading..." : "Upload Document"}
+                    </Button>
+                </div>
                 <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.docx,.pptx,.xlsx"
+                    accept=".pdf,.docx,.pptx"
                     onChange={handleUpload}
                     className="hidden"
                 />
@@ -120,6 +158,7 @@ export default function DocumentsPage() {
                         <tr>
                             <th className="px-4 py-3 text-left font-medium">Filename</th>
                             <th className="px-4 py-3 text-left font-medium">Type</th>
+                            <th className="px-4 py-3 text-left font-medium">Category</th>
                             <th className="px-4 py-3 text-left font-medium">Status</th>
                             <th className="px-4 py-3 text-left font-medium">Uploaded</th>
                             <th className="px-4 py-3" />
@@ -128,7 +167,7 @@ export default function DocumentsPage() {
                     <tbody className="divide-y divide-zinc-800">
                         {documents.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
                                     No documents uploaded yet
                                 </td>
                             </tr>
@@ -137,6 +176,7 @@ export default function DocumentsPage() {
                                 <tr key={doc.id} className="text-zinc-300 hover:bg-zinc-900/50 group">
                                     <td className="px-4 py-3">{doc.filename}</td>
                                     <td className="px-4 py-3 uppercase text-xs text-zinc-400">{doc.file_type}</td>
+                                    <td className="px-4 py-3">{categoryBadge(doc.doc_category)}</td>
                                     <td className="px-4 py-3">{statusBadge(doc.status)}</td>
                                     <td className="px-4 py-3 text-zinc-400">
                                         {new Date(doc.created_at).toLocaleDateString()}

@@ -1,10 +1,12 @@
 from pydantic import BaseModel
 import uuid
 from datetime import datetime
+
 class UploadResponse(BaseModel):
     id: uuid.UUID
     filename: str
     status: str
+    doc_category: str
     created_at: datetime
 
 class DocumentListItem(BaseModel):
@@ -13,4 +15,5 @@ class DocumentListItem(BaseModel):
     filename: str
     file_type: str
     status: str
+    doc_category: str
     created_at: datetime

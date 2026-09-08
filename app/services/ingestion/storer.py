@@ -43,6 +43,7 @@ async def store_chunk(chunk: dict, dense_vector: list[float], tokens: list[str])
             "parent_chunk_id": chunk["parent_chunk_id"],
             "doc_id": chunk["doc_id"],
             "doc_name": chunk.get("doc_name"),
+            "doc_category": chunk.get("doc_category", "policy"),
             "type": chunk["type"],
             "content": chunk["content"],
             "page": chunk.get("page"),

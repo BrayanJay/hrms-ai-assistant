@@ -34,8 +34,9 @@ async def run_pipeline(doc_id: str, file_path: str, db: AsyncSession) -> None:
         doc_result = await db.execute(select(Document).where(Document.id == doc_id))
         doc = doc_result.scalar_one_or_none()
         doc_name = doc.original_filename if doc else "Unknown"
+        doc_category = doc.doc_category if doc else "policy"
 
-        chunks = chunk_document(doc_id, doc_name, result)
+        chunks = chunk_document(doc_id, doc_name, doc_category, result)
         logger.info("chunking complete", extra={"doc_id": doc_id, "total_chunks": len(chunks)})
 
         for chunk in chunks:

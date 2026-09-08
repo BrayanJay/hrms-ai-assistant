@@ -22,6 +22,7 @@ from app.services.tools.pending import delete_pending, get_pending, set_pending
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.generation.translator import to_english, from_english
 from app.services.generation.summarizer import compact_history
+from app.services.tools.transformer import transform_tool_result
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -36,10 +37,10 @@ async def query(request: Request, req: QueryRequest, current_user: dict = Depend
 
     history = await get_history(user_id=user_id, session_id=req.session_id) or []
     history = await compact_history(history)
-    router_history = history[-4:] if len(history) > 4 else history
+    router_context = history[-4:] if len(history) > 4 else history
 
     t0 = time.perf_counter()
-    decision = await classify_intent(query=req.query, user_id=user_id, history=router_history)
+    decision = await classify_intent(query=req.query, context=router_context)
     logger.info("intent classified", extra={
         "user_id": user_id,
         "query": req.query[:100],
@@ -108,6 +109,7 @@ async def query(request: Request, req: QueryRequest, current_user: dict = Depend
                 tool_result = await execute_tool(
                     decision.tool_name, decision.tool_params or {}, user_token
                 )
+                tool_result = transform_tool_result(decision.tool_name, tool_result)
                 t0 = time.perf_counter()
                 answer = await generate(
                     query=english_query,
@@ -129,6 +131,8 @@ async def query(request: Request, req: QueryRequest, current_user: dict = Depend
         )
         context = results[0] if not isinstance(results[0], Exception) else []
         tool_result = results[1] if not isinstance(results[1], Exception) else None
+        if tool_result is not None:
+            tool_result = transform_tool_result(decision.tool_name, tool_result)
         retrieved_chunks = len(context) if context else 0
 
         t0 = time.perf_counter()

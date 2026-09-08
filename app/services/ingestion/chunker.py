@@ -1,27 +1,27 @@
 from app.core.config import settings
 
-def chunk_document(doc_id: str, doc_name: str, parsed: dict) -> list[dict]:
+def chunk_document(doc_id: str, doc_name: str, doc_category: str, parsed: dict) -> list[dict]:
     text_content = parsed["text_contents"]
     table_content = parsed["table_contents"]
     image_content = parsed["image_contents"]
     current_group = []
     groups = []
-    
+
     for content in text_content:
         if content["label"] == "section_header" and current_group:
-            _build_text_chunks(doc_id, doc_name, current_group, groups)
+            _build_text_chunks(doc_id, doc_name, doc_category, current_group, groups)
             current_group = []
         current_group.append(content)
-            
+
     if current_group:
-        _build_text_chunks(doc_id, doc_name, current_group, groups)
-        
+        _build_text_chunks(doc_id, doc_name, doc_category, current_group, groups)
 
     for table in table_content:
         table_chunk = {
             "chunk_id": f"{doc_id}_p{table['page']}_g{len(groups)}",
             "doc_id": doc_id,
             "doc_name": doc_name,
+            "doc_category": doc_category,
             "page": table["page"],
             "type": "table",
             "parent_chunk_id": None,
@@ -32,9 +32,10 @@ def chunk_document(doc_id: str, doc_name: str, parsed: dict) -> list[dict]:
 
     for image in image_content:
         image_chunk = {
-            "chunk_id": f"{doc_id}_p{image["page"]}_g{len(groups)}",
+            "chunk_id": f"{doc_id}_p{image['page']}_g{len(groups)}",
             "doc_id": doc_id,
             "doc_name": doc_name,
+            "doc_category": doc_category,
             "page": image["page"],
             "type": "image",
             "parent_chunk_id": None,
@@ -45,11 +46,12 @@ def chunk_document(doc_id: str, doc_name: str, parsed: dict) -> list[dict]:
 
     return groups
 
-def _build_text_chunks(doc_id: str, doc_name: str, group: list, groups: list) -> None:
+def _build_text_chunks(doc_id: str, doc_name: str, doc_category: str, group: list, groups: list) -> None:
     parent_chunk = {
         "chunk_id": f"{doc_id}_p{group[-1]['page']}_g{len(groups)}",
         "doc_id": doc_id,
         "doc_name": doc_name,
+        "doc_category": doc_category,
         "page": group[-1]["page"],
         "type": "text",
         "parent_chunk_id": None,
@@ -61,15 +63,16 @@ def _build_text_chunks(doc_id: str, doc_name: str, group: list, groups: list) ->
 
     if len(words) < 5:
         return
-    
+
     groups.append(parent_chunk)
-    
+
     for i in range(0, len(words), settings.child_threshold):
         groups.append({
             "chunk_id": f"{parent_chunk['chunk_id']}_c{i}",
             "parent_chunk_id": parent_chunk["chunk_id"],
             "doc_id": doc_id,
             "doc_name": doc_name,
+            "doc_category": doc_category,
             "page": parent_chunk["page"],
             "type": "text",
             "content": " ".join(words[i:i+settings.child_threshold]),
